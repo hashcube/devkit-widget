@@ -6,7 +6,11 @@
       "widget": "js"
     },
     "extensions": {
-      "ios": "ios"
+      "ios": "ios",
+      "build": "build"
     }
+  },
+  "dependencies": {
+    "wrench": "^1.5.9"
   }
 }
