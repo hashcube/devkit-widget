@@ -1,0 +1,12 @@
+{
+  "name": "devkit-widget",
+  "version": "0.0.0",
+  "devkit": {
+    "clientPaths": {
+      "widget": "js"
+    },
+    "extensions": {
+      "ios": "ios"
+    }
+  }
+}
