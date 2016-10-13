@@ -1,41 +1,62 @@
+/* global Promise */
 /* jshint node: true */
-var xcodeUtil = require('../../devkit-core/modules/native-ios/lib/xcodeUtil');
-var updatePlist = require('../../devkit-core/modules/native-ios/lib/updatePlist');
-var Rsync = require('rsync');
-var path = require("path");
+
+var xcodeUtil = require('../../devkit-core/modules/native-ios/lib/xcodeUtil'),
+  updatePlist = require('../../devkit-core/modules/native-ios/lib/updatePlist'),
+  Rsync = require('rsync'),
+  path = require("path");
 
 exports.onBeforeBuild = function (api, app, config, cb) {
   'use strict';
 
-  var bundle_id = config.bundleID,
-    out_path = config.outputPath,
-    widget_id = app.manifest.ios.widgetID || 'widget',
-    widget_group = app.manifest.ios.widgetGroup || 'group.' + bundle_id;
-
-  if (config.target === 'native-ios') {
-    console.log('============');
-    console.log(bundle_id, widget_id, widget_group, out_path);
-  }
+  var widgetID = app.manifest.ios.widgetID || 'widget',
+    widgetGroup = app.manifest.ios.widgetGroup || 'group.' + config.bundleID;
 
   cb();
 
+  if (config.target !== 'native-ios') {
+    return;
+  }
+
   api.streams.registerFunction('ios-build-widget', function () {
-    console.log('\n\n\n\n\n----------------------------here!');
+    var xcodeProjectPath = config.xcodeProjectPath;
+    console.log('\n\n\n\n\n----------------------------');
 
-    var projectPath = config.xcodeProjectPath;
-
-    return new Promise(function () {
+    return Promise
+      .resolve()
+      .then(function () {
         var rsync = new Rsync()
           .flags('a')
           .set('delete-before')
           .source(path.resolve(__dirname, '../ios/widget'))
-          .destination(projectPath);
+          .destination(xcodeProjectPath);
 
         return Promise.fromNode(rsync.execute.bind(rsync));
-      }).then(function () {
-        return xcodeUtil.getXcodeProject(projectPath)
-          .then(function (xcodeProject) {
-          });
-      });
+      })
+      .then(function () {
+        return xcodeUtil.getXcodeProject(xcodeProjectPath);
+      })
+      .then(function (xcodeProject) {
+        var entitlements = updatePlist.get(path.join(xcodeProjectPath, 'TeaLeafIOS.entitlements'));
+        var widgetPlist = updatePlist.getInfoPlist(xcodeProjectPath + '/widget');
+        var raw = widgetPlist.getRaw();
+        raw.CFBundleDisplayName = app.manifest.title || "";
+        raw.CFBundleIdentifier = config.bundleID + '.' + widgetID;
+        raw.WidgetGroup = widgetGroup;
+
+        var rawEntitlements = entitlements.getRaw();
+        rawEntitlements['com.apple.security.application-groups'] = [widgetGroup];
+
+        var widgetEntitlements = updatePlist.get(config.xcodeProjectPath + '/widget/widget.entitlements');
+        var rawWidgetEntitlements = widgetEntitlements.getRaw();
+        rawWidgetEntitlements['com.apple.security.application-groups'] = [widgetGroup];
+
+        return [
+          entitlements.write(),
+          widgetPlist.write(),
+          widgetEntitlements.write()
+        ];
+      })
+      .all();
   });
 };
