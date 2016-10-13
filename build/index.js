@@ -10,7 +10,10 @@ exports.onBeforeBuild = function (api, app, config, cb) {
   'use strict';
 
   var widgetID = app.manifest.ios.widgetID || 'widget',
-    widgetGroup = app.manifest.ios.widgetGroup || 'group.' + config.bundleID;
+    widgetGroup = app.manifest.ios.widgetGroup || 'group.' + config.bundleID,
+    manifest = app.manifest,
+    version = manifest.ios && manifest.ios.version || manifest.version || '0.0.0',
+    buildNumber = manifest.ios && manifest.ios.buildNumber || version;
 
   cb();
 
@@ -42,6 +45,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         var raw = widgetPlist.getRaw();
         raw.CFBundleDisplayName = app.manifest.title || "";
         raw.CFBundleIdentifier = config.bundleID + '.' + widgetID;
+        raw.CFBundleShortVersionString = version;
+        raw.CFBundleVersion = buildNumber + "";
         raw.WidgetGroup = widgetGroup;
 
         var rawEntitlements = entitlements.getRaw();
