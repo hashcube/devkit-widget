@@ -4,7 +4,16 @@
 var xcodeUtil = require('../../devkit-core/modules/native-ios/lib/xcodeUtil'),
   updatePlist = require('../../devkit-core/modules/native-ios/lib/updatePlist'),
   Rsync = require('rsync'),
+  module_config = require("../ios/config"),
   path = require("path");
+
+var isHeaderFile = function(filename) {
+  return (/\.h(pp)?$/).test(filename);
+};
+
+var isSourceFile = function(filename) {
+  return (/\.(c(pp)?)|mm?$/).test(filename);
+};
 
 exports.onBeforeBuild = function (api, app, config, cb) {
   'use strict';
@@ -23,6 +32,7 @@ exports.onBeforeBuild = function (api, app, config, cb) {
 
   api.streams.registerFunction('ios-build-widget', function () {
     var xcodeProjectPath = config.xcodeProjectPath;
+    var groupKey;
     console.log('\n\n\n\n\n----------------------------');
 
     return Promise
@@ -40,8 +50,47 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         return xcodeUtil.getXcodeProject(xcodeProjectPath);
       })
       .then(function (xcodeProject) {
+        xcodeProject._project.addTarget('widget', 'app_extension', 'widget');
+        groupKey = xcodeProject._project.pbxCreateGroup('widget', 'widget');
+
+        return xcodeProject;
+      })
+      .then(function (xcodeProject) {
+        module_config.code.forEach(function(file) {
+          if (isHeaderFile(file)) {
+            xcodeProject._project.addHeaderFile(file, {}, groupKey);
+          } else if (isSourceFile(file)) {
+            xcodeProject._project.addSourceFile(file, {}, groupKey);
+          } else {
+            console.warn('Skipping unknown code file type', file);
+          }
+        });
+        return xcodeProject;
+      })
+      .then(function (xcodeProject) {
+        module_config.resources.forEach(function(resource) {
+          xcodeProject._project.addResourceFile(resource, {}, 'widget');
+        });
+        return xcodeProject;
+      })
+      .then(function (xcodeProject) {
+        module_config.frameworks.forEach(function(framework) {
+          console.log('adding', framework);
+          xcodeProject._project.addFramework(framework);
+        });
+        return xcodeProject;
+      })
+      .then(function (xcodeProject) {
+        xcodeProject.write();
+      })
+      .then(function () {
+        // Teleaf entitlements
         var entitlements = updatePlist.get(path.join(xcodeProjectPath, 'TeaLeafIOS.entitlements'));
-        var widgetPlist = updatePlist.getInfoPlist(xcodeProjectPath + '/widget');
+        var rawEntitlements = entitlements.getRaw();
+        rawEntitlements['com.apple.security.application-groups'] = [widgetGroup];
+
+        // Widget Plist
+        var widgetPlist = updatePlist.getInfoPlist(path.join(xcodeProjectPath, 'widget'));
         var raw = widgetPlist.getRaw();
         raw.CFBundleDisplayName = app.manifest.title || "";
         raw.CFBundleIdentifier = config.bundleID + '.' + widgetID;
@@ -49,10 +98,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         raw.CFBundleVersion = buildNumber + "";
         raw.WidgetGroup = widgetGroup;
 
-        var rawEntitlements = entitlements.getRaw();
-        rawEntitlements['com.apple.security.application-groups'] = [widgetGroup];
-
-        var widgetEntitlements = updatePlist.get(config.xcodeProjectPath + '/widget/widget.entitlements');
+        // Widget Entitlements
+        var widgetEntitlements = updatePlist.get(path.join(config.xcodeProjectPath, 'widget', 'widget.entitlements'));
         var rawWidgetEntitlements = widgetEntitlements.getRaw();
         rawWidgetEntitlements['com.apple.security.application-groups'] = [widgetGroup];
 

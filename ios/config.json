@@ -1,7 +1,15 @@
 {
   "code": [
+    "TodayViewController.h",
+    "TodayViewController.m"
+  ],
+  "resources": [
+    "play.png",
+    "MainInterface.storyboard",
+    "Info.plist"
   ],
   "frameworks": [
+    "NotificationCenter.framework"
   ],
   "userDefined": [
   ],
