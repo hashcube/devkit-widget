@@ -61,6 +61,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
           basename: 'widget'
         }, proj.firstProject.mainGroup);
 
+        groupKey = xcodeProject._project.addBuildProperty('CLANG_ENABLE_OBJC_ARC', true);
+
         return xcodeProject;
       })
       .then(function (xcodeProject) {
