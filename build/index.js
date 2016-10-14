@@ -32,7 +32,7 @@ exports.onBeforeBuild = function (api, app, config, cb) {
 
   api.streams.registerFunction('ios-build-widget', function () {
     var xcodeProjectPath = config.xcodeProjectPath;
-    var groupKey;
+    var groupKey, target;
     console.log('\n\n\n\n\n----------------------------');
 
     return Promise
@@ -50,17 +50,25 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         return xcodeUtil.getXcodeProject(xcodeProjectPath);
       })
       .then(function (xcodeProject) {
-        xcodeProject._project.addTarget('widget', 'app_extension', 'widget');
+        var proj = xcodeProject._project.getFirstProject();
+
+        target = xcodeProject._project.addTarget('widget', 'app_extension', 'widget');
+        // create widget group
         groupKey = xcodeProject._project.pbxCreateGroup('widget', 'widget');
+        // Add newly created widget group to the main group
+        xcodeProject._project.addToPbxGroup({
+          fileRef: groupKey,
+          basename: 'widget'
+        }, proj.firstProject.mainGroup);
 
         return xcodeProject;
       })
       .then(function (xcodeProject) {
         module_config.code.forEach(function(file) {
           if (isHeaderFile(file)) {
-            xcodeProject._project.addHeaderFile(file, {}, groupKey);
+            xcodeProject._project.addHeaderFile(file, {target: target.uuid}, groupKey);
           } else if (isSourceFile(file)) {
-            xcodeProject._project.addSourceFile(file, {}, groupKey);
+            xcodeProject._project.addSourceFile(file, {target: target.uuid, ext: true}, groupKey);
           } else {
             console.warn('Skipping unknown code file type', file);
           }
@@ -69,14 +77,13 @@ exports.onBeforeBuild = function (api, app, config, cb) {
       })
       .then(function (xcodeProject) {
         module_config.resources.forEach(function(resource) {
-          xcodeProject._project.addResourceFile(resource, {}, 'widget');
+          xcodeProject._project.addResourceFile(resource, {target: target.uuid, ext: true}, 'widget');
         });
         return xcodeProject;
       })
       .then(function (xcodeProject) {
         module_config.frameworks.forEach(function(framework) {
-          console.log('adding', framework);
-          xcodeProject._project.addFramework(framework);
+          xcodeProject._project.addFramework(framework, {link: true, target: target.uuid, ext: true});
         });
         return xcodeProject;
       })
