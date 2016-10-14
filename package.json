@@ -6,7 +6,6 @@
       "widget": "js"
     },
     "extensions": {
-      "ios": "ios",
       "build": "build"
     }
   },
