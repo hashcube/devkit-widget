@@ -10,7 +10,7 @@
 #import <NotificationCenter/NotificationCenter.h>
 
 @interface TodayViewController () <NCWidgetProviding>
-@property (weak, nonatomic) IBOutlet UIButton *actionButton;
+@property (retain, nonatomic) IBOutlet UIButton *actionButton;
 
 @end
 
