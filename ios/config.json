@@ -5,6 +5,8 @@
   ],
   "resources": [
     "play.png",
+    "play@2x.png",
+    "play@3x.png",
     "MainInterface.storyboard",
     "Info.plist"
   ],
