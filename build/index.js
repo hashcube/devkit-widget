@@ -50,7 +50,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         return xcodeUtil.getXcodeProject(xcodeProjectPath);
       })
       .then(function (xcodeProject) {
-        var proj = xcodeProject._project.getFirstProject();
+        var proj = xcodeProject._project.getFirstProject(),
+          firstTarget = xcodeProject._project.getFirstTarget().firstTargetUuid;
 
         target = xcodeProject._project.addTarget('widget', 'app_extension', 'widget');
         // create widget group
@@ -60,6 +61,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
           fileRef: groupKey,
           basename: 'widget'
         }, proj.firstProject.mainGroup);
+
+        xcodeProject._project.addTargetDependency(firstTarget, [target]);
 
         return xcodeProject;
       })
