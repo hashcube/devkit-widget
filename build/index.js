@@ -31,9 +31,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
   }
 
   api.streams.registerFunction('ios-build-widget', function () {
-    var xcodeProjectPath = config.xcodeProjectPath;
-    var groupKey, target;
-    console.log('\n\n\n\n\n----------------------------');
+    var xcodeProjectPath = config.xcodeProjectPath,
+      groupKey, target;
 
     return Promise
       .resolve()
@@ -50,41 +49,44 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         return xcodeUtil.getXcodeProject(xcodeProjectPath);
       })
       .then(function (xcodeProject) {
-        var proj = xcodeProject._project.getFirstProject(),
-          firstTarget = xcodeProject._project.getFirstTarget().firstTargetUuid;
+        var project = xcodeProject._project,
+          firstProject = project.getFirstProject().firstProject,
+          firstTarget = project.getFirstTarget().firstTargetUuid;
 
-        target = xcodeProject._project.addTarget('widget', 'app_extension', 'widget');
+        target = project.addTarget('widget', 'app_extension', 'widget');
         // create widget group
-        groupKey = xcodeProject._project.pbxCreateGroup('widget', 'widget');
+        groupKey = project.pbxCreateGroup('widget', 'widget');
         // Add newly created widget group to the main group
-        xcodeProject._project.addToPbxGroup({
+        project.addToPbxGroup({
           fileRef: groupKey,
           basename: 'widget'
-        }, proj.firstProject.mainGroup);
+        }, firstProject.mainGroup);
 
-        xcodeProject._project.addTargetDependency(firstTarget, [target]);
+        // add widget as a build dependency for the app
+        project.addTargetDependency(firstTarget, [target]);
 
         return xcodeProject;
       })
       .then(function (xcodeProject) {
+        var project = xcodeProject._project;
+
+        // Add files
         module_config.code.forEach(function(file) {
           if (isHeaderFile(file)) {
-            xcodeProject._project.addHeaderFile(file, {target: target.uuid}, groupKey);
+            project.addHeaderFile(file, {target: target.uuid}, groupKey);
           } else if (isSourceFile(file)) {
-            xcodeProject._project.addSourceFile(file, {target: target.uuid, ext: true}, groupKey);
+            project.addSourceFile(file, {target: target.uuid, ext: true}, groupKey);
           } else {
             console.warn('Skipping unknown code file type', file);
           }
         });
-        return xcodeProject;
-      })
-      .then(function (xcodeProject) {
+
+        // Add resources
         module_config.resources.forEach(function(resource) {
           xcodeProject._project.addResourceFile(resource, {target: target.uuid, ext: true}, 'widget');
         });
-        return xcodeProject;
-      })
-      .then(function (xcodeProject) {
+
+        // Add frameworks
         module_config.frameworks.forEach(function(framework) {
           xcodeProject._project.addFramework(framework, {link: true, target: target.uuid, ext: true});
         });
@@ -94,6 +96,7 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         xcodeProject.write();
       })
       .then(function () {
+        // Update plist and entitlements
         // Teleaf entitlements
         var entitlements = updatePlist.get(path.join(xcodeProjectPath, 'TeaLeafIOS.entitlements'));
         var rawEntitlements = entitlements.getRaw();
