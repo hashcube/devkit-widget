@@ -68,9 +68,11 @@ exports.onBeforeBuild = function (api, app, config, cb) {
 
         buildProperties = {
           'CODE_SIGN_IDENTITY': 'iPhone Developer',
-          'IPHONEOS_DEPLOYMENT_TARGET': 8.0,
+          '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': 'iPhone Developer',
+          'DEVELOPMENT_TEAM': app.manifest.ios.teamID || '',
+          'IPHONEOS_DEPLOYMENT_TARGET': '8.0',
+          'SDKROOT': 'iphoneos',
           'TARGETED_DEVICE_FAMILY': '1,2',
-          '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': 'iPhone Developer'
         };
 
         for (var key in buildProperties) {
