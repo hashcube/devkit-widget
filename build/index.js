@@ -51,7 +51,8 @@ exports.onBeforeBuild = function (api, app, config, cb) {
       .then(function (xcodeProject) {
         var project = xcodeProject._project,
           firstProject = project.getFirstProject().firstProject,
-          firstTarget = project.getFirstTarget().firstTargetUuid;
+          firstTarget = project.getFirstTarget().firstTargetUuid,
+          buildProperties;
 
         target = project.addTarget('widget', 'app_extension', 'widget');
         // create widget group
@@ -65,9 +66,16 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         // add widget as a build dependency for the app
         project.addTargetDependency(firstTarget, [target]);
 
-        project.addBuildProperty('CODE_SIGN_IDENTITY', 'iPhone Developer');
-        project.addBuildProperty('IPHONEOS_DEPLOYMENT_TARGET', 8.0);
-        project.addBuildProperty('TARGETED_DEVICE_FAMILY', '"1,2"');
+        buildProperties = {
+          'CODE_SIGN_IDENTITY': 'iPhone Developer',
+          'IPHONEOS_DEPLOYMENT_TARGET': 8.0,
+          'TARGETED_DEVICE_FAMILY': '1,2',
+          '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': 'iPhone Developer'
+        };
+
+        for (var key in buildProperties) {
+          project.addBuildProperty(key, '"' + buildProperties[key] + '"');
+        }
 
         return xcodeProject;
       })
@@ -94,6 +102,11 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         module_config.frameworks.forEach(function(framework) {
           xcodeProject._project.addFramework(framework, {link: true, target: target.uuid, ext: true});
         });
+
+        // Add plists
+        project.addFile('widget-Info.plist', groupKey);
+        project.addFile('widget.entitlements', groupKey);
+
         return xcodeProject;
       })
       .then(function (xcodeProject) {
