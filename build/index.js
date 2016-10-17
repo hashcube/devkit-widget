@@ -65,6 +65,10 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         // add widget as a build dependency for the app
         project.addTargetDependency(firstTarget, [target]);
 
+        project.addBuildProperty('CODE_SIGN_IDENTITY', 'iPhone Developer');
+        project.addBuildProperty('IPHONEOS_DEPLOYMENT_TARGET', 8.0);
+        project.addBuildProperty('TARGETED_DEVICE_FAMILY', '"1,2"');
+
         return xcodeProject;
       })
       .then(function (xcodeProject) {
