@@ -4,7 +4,7 @@
 var xcodeUtil = require('../../devkit-core/modules/native-ios/lib/xcodeUtil'),
   updatePlist = require('../../devkit-core/modules/native-ios/lib/updatePlist'),
   Rsync = require('rsync'),
-  module_config = require("../ios/config"),
+  module_config = require("../widget/config"),
   path = require("path");
 
 var isHeaderFile = function(filename) {
@@ -40,7 +40,7 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         var rsync = new Rsync()
           .flags('a')
           .set('delete-before')
-          .source(path.resolve(__dirname, '../ios/widget'))
+          .source(path.resolve(__dirname, '../widget'))
           .destination(xcodeProjectPath);
 
         return Promise.fromNode(rsync.execute.bind(rsync));
