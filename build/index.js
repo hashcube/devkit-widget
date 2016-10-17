@@ -67,16 +67,16 @@ exports.onBeforeBuild = function (api, app, config, cb) {
         project.addTargetDependency(firstTarget, [target]);
 
         buildProperties = {
-          'CODE_SIGN_IDENTITY': 'iPhone Developer',
-          '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': 'iPhone Developer',
+          'CODE_SIGN_IDENTITY': '"iPhone Developer"',
+          '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': '"iPhone Developer"',
           'DEVELOPMENT_TEAM': app.manifest.ios.teamID || '',
           'IPHONEOS_DEPLOYMENT_TARGET': '8.0',
           'SDKROOT': 'iphoneos',
-          'TARGETED_DEVICE_FAMILY': '1,2',
+          'TARGETED_DEVICE_FAMILY': '"1,2"',
         };
 
         for (var key in buildProperties) {
-          project.addBuildProperty(key, '"' + buildProperties[key] + '"');
+          project.addBuildProperty(key, buildProperties[key]);
         }
 
         return xcodeProject;
