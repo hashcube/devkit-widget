@@ -10,7 +10,8 @@
     "MainInterface.storyboard"
   ],
   "frameworks": [
-    "NotificationCenter.framework"
+    "NotificationCenter.framework",
+    "UIKit.framework"
   ],
   "userDefined": [
   ],
